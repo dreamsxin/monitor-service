@@ -4,20 +4,63 @@ import (
 	"monitor-service/db"
 	"monitor-service/models"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
 
-// ListSites 获取所有站点
+// ListSites 获取所有站点（支持分页）
 // @Summary      获取所有站点
-// @Description  返回所有被监控的站点列表
+// @Description  返回所有被监控的站点列表，支持分页
 // @Tags         站点管理
 // @Produce      json
-// @Success      200  {array}   models.MonitoredSite
+// @Param        page query int false "页码，默认1" minimum(1)
+// @Param        page_size query int false "每页数量，默认20，最大100" minimum(1) maximum(100)
+// @Success      200  {object}  models.SitesPageResponse
+// @Failure      400  {object}  map[string]interface{}
 // @Failure      500  {object}  map[string]interface{}
 // @Router       /sites [get]
 func ListSites(c *gin.Context) {
-	rows, err := db.DB.Query(`SELECT id, url, name, created_at, is_active FROM monitored_sites ORDER BY created_at DESC`)
+	// 解析分页参数
+	page := 1
+	pageSize := 20
+
+	if p := c.Query("page"); p != "" {
+		if val, err := strconv.Atoi(p); err == nil && val >= 1 {
+			page = val
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid page parameter"})
+			return
+		}
+	}
+
+	if ps := c.Query("page_size"); ps != "" {
+		if val, err := strconv.Atoi(ps); err == nil && val >= 1 && val <= 100 {
+			pageSize = val
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid page_size parameter (must be 1-100)"})
+			return
+		}
+	}
+
+	offset := (page - 1) * pageSize
+
+	// 查询总记录数
+	var total int64
+	err := db.DB.QueryRow("SELECT COUNT(*) FROM monitored_sites").Scan(&total)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to count sites: " + err.Error()})
+		return
+	}
+
+	// 查询分页数据
+	rows, err := db.DB.Query(
+		`SELECT id, url, name, created_at, is_active 
+         FROM monitored_sites 
+         ORDER BY created_at DESC 
+         LIMIT ? OFFSET ?`,
+		pageSize, offset,
+	)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -35,7 +78,14 @@ func ListSites(c *gin.Context) {
 		s.IsActive = isActive == 1
 		sites = append(sites, s)
 	}
-	c.JSON(http.StatusOK, sites)
+
+	// 返回分页响应
+	c.JSON(http.StatusOK, models.SitesPageResponse{
+		Total:    total,
+		Page:     page,
+		PageSize: pageSize,
+		Sites:    sites,
+	})
 }
 
 // GetChanges 查询变化记录

@@ -174,7 +174,7 @@ const docTemplate = `{
         },
         "/sites": {
             "get": {
-                "description": "返回所有被监控的站点列表",
+                "description": "返回所有被监控的站点列表，支持分页",
                 "produces": [
                     "application/json"
                 ],
@@ -182,14 +182,35 @@ const docTemplate = `{
                     "站点管理"
                 ],
                 "summary": "获取所有站点",
+                "parameters": [
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "页码，默认1",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "每页数量，默认20，最大100",
+                        "name": "page_size",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.MonitoredSite"
-                            }
+                            "$ref": "#/definitions/models.SitesPageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "500": {
@@ -340,6 +361,30 @@ const docTemplate = `{
                 }
             }
         },
+        "models.SitesPageResponse": {
+            "type": "object",
+            "properties": {
+                "page": {
+                    "description": "当前页码",
+                    "type": "integer"
+                },
+                "page_size": {
+                    "description": "每页数量",
+                    "type": "integer"
+                },
+                "sites": {
+                    "description": "站点列表",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.MonitoredSite"
+                    }
+                },
+                "total": {
+                    "description": "总记录数",
+                    "type": "integer"
+                }
+            }
+        },
         "models.UploadChangeRequest": {
             "type": "object",
             "required": [
@@ -360,7 +405,6 @@ const docTemplate = `{
                     ]
                 },
                 "content": {
-                    "description": "原始内容（可选）",
                     "type": "string"
                 },
                 "file_path": {
@@ -390,6 +434,8 @@ var SwaggerInfo = &swag.Spec{
 	Description:      "用于接收监控工具上报的变化数据，并提供站点 Hook 脚本配置。",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
+	LeftDelim:        "{{",
+	RightDelim:       "}}",
 }
 
 func init() {

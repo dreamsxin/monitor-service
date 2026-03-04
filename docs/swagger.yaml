@@ -57,6 +57,23 @@ definitions:
       type:
         type: string
     type: object
+  models.SitesPageResponse:
+    properties:
+      page:
+        description: 当前页码
+        type: integer
+      page_size:
+        description: 每页数量
+        type: integer
+      sites:
+        description: 站点列表
+        items:
+          $ref: '#/definitions/models.MonitoredSite'
+        type: array
+      total:
+        description: 总记录数
+        type: integer
+    type: object
   models.UploadChangeRequest:
     properties:
       change_diff:
@@ -67,7 +84,6 @@ definitions:
         - content
         type: string
       content:
-        description: 原始内容（可选）
         type: string
       file_path:
         type: string
@@ -198,16 +214,31 @@ paths:
       - Hook脚本
   /sites:
     get:
-      description: 返回所有被监控的站点列表
+      description: 返回所有被监控的站点列表，支持分页
+      parameters:
+      - description: 页码，默认1
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - description: 每页数量，默认20，最大100
+        in: query
+        maximum: 100
+        minimum: 1
+        name: page_size
+        type: integer
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/models.MonitoredSite'
-            type: array
+            $ref: '#/definitions/models.SitesPageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
         "500":
           description: Internal Server Error
           schema:

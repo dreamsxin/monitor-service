@@ -13,6 +13,14 @@ type MonitoredSite struct {
 	IsActive  bool      `json:"is_active"`
 }
 
+// SitesPageResponse 站点列表分页响应
+type SitesPageResponse struct {
+	Total    int64           `json:"total"`     // 总记录数
+	Page     int             `json:"page"`      // 当前页码
+	PageSize int             `json:"page_size"` // 每页数量
+	Sites    []MonitoredSite `json:"sites"`     // 站点列表
+}
+
 type ChangeRecord struct {
 	ID           string    `json:"id"`
 	SiteID       string    `json:"site_id"`

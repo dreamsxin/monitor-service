@@ -159,6 +159,28 @@ curl "http://localhost:8080/api/changes?site_id=550e8400-e29b-41d4-a716-44665544
 
 ```bash
 curl "http://localhost:8080/api/sites"
+# 获取第2页，每页10条
+curl "http://localhost:8080/api/sites?page=2&page_size=10"
+```
+
+**响应示例**
+
+```json
+{
+  "total": 35,
+  "page": 2,
+  "page_size": 10,
+  "sites": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "url": "https://example.com",
+      "name": "Example Site",
+      "created_at": "2024-01-01T12:00:00Z",
+      "is_active": true
+    },
+    // ... 更多站点
+  ]
+}
 ```
 
 ### 5. 获取文件内容快照
